@@ -22,6 +22,9 @@ if 'generated_images' not in st.session_state:
 # Default API key empty; user should enter in sidebar
 if 'api_key' not in st.session_state:
     st.session_state.api_key = ""
+# Optional global extra instructions field (user may leave empty)
+if 'extra_instructions' not in st.session_state:
+    st.session_state.extra_instructions = ""
 
 # Supported shot angles (max 4)
 ANGLES = [
@@ -48,68 +51,202 @@ def resize_image_file(path, width, height):
     except Exception:
         return False
 
-# Platform specifications
+# Enhanced Platform Specifications (Pixel-Perfect, Scaling-Safe)
 PLATFORMS = {
     "Amazon": {
-        "description": "E-commerce product listing",
-        "requirements": "Pure white background, no props, product fills 85% of frame",
-        "aspect_ratio": "1:1",
-        "size": "1000x1000px"
+        "description": "Amazon e-commerce product listing (main image)",
+        "requirements": {
+            "background": "Pure white (RGB 255,255,255 / HEX #FFFFFF)",
+            "frame_fill": "Product must occupy 85–90% of the frame",
+            "prohibited": ["props", "logos", "watermarks", "text", "inset images"],
+            "focus": "Sharp, professional, minimal shadows",
+            "color": "True-to-life, accurate product color",
+            "aspect_ratio": "1:1",
+            "size": "2000x2000px (minimum 1000x1000px)",
+            "format": "JPEG or TIFF",
+            "color_space": "sRGB"
+        },
+        "notes": "Resize by scaling/reducing proportionally. Do not crop subject; extend white background if necessary."
     },
     "Flipkart": {
-        "description": "E-commerce product listing",
-        "requirements": "White background, no watermarks, clear product view",
-        "aspect_ratio": "1:1",
-        "size": "1000x1000px"
+        "description": "Flipkart e-commerce product listing",
+        "requirements": {
+            "background": "Clean white (RGB ~245,245,245)",
+            "frame_fill": "Product should occupy at least 80% of the frame",
+            "prohibited": ["watermarks", "logos", "promotional text"],
+            "focus": "Clear visibility, multiple angles preferred",
+            "aspect_ratio": "1:1",
+            "size": "1500x1500px (minimum 800x800px)",
+            "format": "JPEG",
+            "color_space": "sRGB"
+        },
+        "notes": "Scaling only — do not crop. Add background fill if resizing is required."
     },
     "Zomato": {
-        "description": "Food delivery listing",
-        "requirements": "Appetizing food presentation, enhanced colors",
-        "aspect_ratio": "1:1",
-        "size": "1080x1080px"
+        "description": "Zomato food delivery listing",
+        "requirements": {
+            "composition": "Food must be appetizing, styled, with minimal background",
+            "focus": "Highlight freshness, color, and texture",
+            "aspect_ratio": "1:1",
+            "size": "1080x1080px",
+            "format": "JPEG",
+            "color_space": "sRGB"
+        },
+        "notes": "Rescale without cropping dish. Pad or extend background to square if needed."
     },
     "Swiggy": {
-        "description": "Food delivery listing",
-        "requirements": "Appetizing food presentation, vibrant colors",
-        "aspect_ratio": "1:1",
-        "size": "1080x1080px"
+        "description": "Swiggy food delivery listing",
+        "requirements": {
+            "composition": "Dish centered, vibrant colors, professional food presentation",
+            "focus": "Boost hunger appeal with strong lighting and contrast",
+            "aspect_ratio": "1:1",
+            "size": "1080x1080px",
+            "format": "JPEG",
+            "color_space": "sRGB"
+        },
+        "notes": "Maintain full dish visibility — rescale, don’t crop. Extend clean background if needed."
     },
     "Instagram Post": {
-        "description": "Social media post",
-        "requirements": "Engaging composition, high aesthetic value",
-        "aspect_ratio": "1:1 or 4:5",
-        "size": "1080x1080px"
+        "description": "Instagram feed post",
+        "requirements": {
+            "composition": "High aesthetic value, brand-consistent styling",
+            "aspect_ratio": "1:1 (square) or 4:5 (portrait)",
+            "size": "1080x1080px (square) / 1080x1350px (portrait)",
+            "format": "JPEG",
+            "color_space": "sRGB"
+        },
+        "notes": "Reframe using scaling, not cropping. Fill edges with blurred/extended background if necessary."
     },
     "Instagram Story": {
-        "description": "Social media story",
-        "requirements": "Vertical format, space for text/graphics",
-        "aspect_ratio": "9:16",
-        "size": "1080x1920px"
+        "description": "Instagram Story format",
+        "requirements": {
+            "composition": "Vertical, space reserved for overlay text at top and bottom 20%",
+            "aspect_ratio": "9:16",
+            "size": "1080x1920px",
+            "format": "JPEG or MP4",
+            "color_space": "sRGB"
+        },
+        "notes": "Do not crop subject. Scale to vertical, extend or blur background for fit."
     },
     "OLX": {
-        "description": "Classifieds listing",
-        "requirements": "Clean background, no personal info, clear product view",
-        "aspect_ratio": "4:3 or 1:1",
-        "size": "800x800px"
+        "description": "OLX classified ad listing",
+        "requirements": {
+            "background": "Neutral (white/gray), clutter-free",
+            "composition": "Product shown from multiple angles, honest condition",
+            "prohibited": ["personal information", "watermarks", "contact numbers"],
+            "aspect_ratio": "1:1 or 4:3",
+            "size": "1200x1200px or 1200x900px",
+            "format": "JPEG",
+            "color_space": "sRGB"
+        },
+        "notes": "Resize proportionally, no subject cropping. Extend neutral background where needed."
     },
-    "Spotify Canvas": {
-        "description": "Music visualizer",
-        "requirements": "Vertical format, music-themed, visually striking",
-        "aspect_ratio": "9:16",
-        "size": "1080x1920px"
+    "Spotify Album Cover": {
+        "description": "Spotify album or track artwork",
+        "requirements": {
+            "composition": "Square image representing album/track identity, visually striking and brand-consistent",
+            "aspect_ratio": "1:1",
+            "size": "3000x3000px (minimum 640x640px)",
+            "format": "JPEG or PNG",
+            "color_space": "sRGB"
+        },
+        "notes": "Must not include URLs, logos, or social media handles. Resize by scaling only, no cropping; extend/pad background if needed."
     }
 }
 
-# Prompts for Gemini
+# Perfected Gemini Prompts (With Scaling Rule Included)
 PROMPTS = {
-    "Amazon": "I am providing an image of a product. You need to edit this image to meet Amazon's product listing requirements. The final image must have a pure white background (RGB 255, 255, 255), the product must fill 85% of the frame, and it should be in a 1:1 aspect ratio. Remove any props, logos, or watermarks. Your output should only be the edited image.",
-    "Flipkart": "I am providing an image of a product. You need to edit this image to meet Flipkart's product listing requirements. The final image must have a white background, be centered, and have a 1:1 aspect ratio. Remove any watermarks or text. Your output should only be the edited image.",
-    "Zomato": "I am providing an image of a food dish. You need to edit this image to make it suitable for a Zomato listing. Enhance the colors to make the food look appetizing, increase saturation and contrast, and crop it to a 1:1 square aspect ratio. Your output should only be the edited image.",
-    "Swiggy": "I am providing an image of a food dish. You need to edit this image for a Swiggy listing. Make the food look delicious and vibrant, and ensure the image is clear and inviting with a 1:1 aspect ratio. Your output should only be the edited image.",
-    "Instagram Post": "I am providing an image. You need to adapt it for an Instagram post. Enhance the colors to make it engaging and stylish, and set the aspect ratio to 1:1. Your output should only be the edited image.",
-    "Instagram Story": "I am providing an image. You need to reformat it for an Instagram Story. Change the aspect ratio to 9:16 (vertical), ensure the main subject is centered, and leave some space at the top and bottom if possible. Your output should only be the edited image.",
-    "OLX": "I am providing an image of a product for an OLX classifieds listing. You need to edit it to make the product clearly visible. Remove any background clutter and set the background to a neutral color like gray or white. Your output should only be the edited image.",
-    "Spotify Canvas": "I am providing an image. You need to create a vertical image from it for a Spotify Canvas. The aspect ratio must be 9:16. The final image should be visually striking and music-related. If it's an album cover, adapt it to fit vertically while keeping the key elements. Your output should only be the edited image."
+    "Amazon": (
+        "TASK: Transform this product image to meet Amazon’s main image requirements.\n"
+        "MANDATORY CHANGES:\n"
+        "- Background: pure white (#FFFFFF / RGB 255,255,255).\n"
+        "- Product fills ~85–90% of square frame (1:1).\n"
+        "- Remove all props, text, logos, and watermarks.\n"
+        "- Apply professional lighting, minimal shadows.\n"
+        "- Preserve true product colors and identifiable details.\n"
+        "RESIZING RULE:\n"
+        "- Resize only by scaling proportionally. Do not crop subject. Extend white background if required to achieve 2000x2000px.\n"
+        "OUTPUT: JPEG in sRGB, 2000x2000px. Return ONLY the edited image bytes."
+    ),
+
+    "Flipkart": (
+        "TASK: Edit this product photo for Flipkart compliance.\n"
+        "MANDATORY CHANGES:\n"
+        "- White/light-gray background (RGB ~245,245,245).\n"
+        "- Product centered, ≥80% frame coverage.\n"
+        "- Aspect ratio: 1:1, size 1500x1500px.\n"
+        "- Remove watermarks/logos/text.\n"
+        "RESIZING RULE:\n"
+        "- Resize by scaling, not cropping. Add white/light-gray padding as needed.\n"
+        "OUTPUT: JPEG in sRGB. Return ONLY the edited image bytes."
+    ),
+
+    "Zomato": (
+        "TASK: Enhance this food image for Zomato listing.\n"
+        "MANDATORY CHANGES:\n"
+        "- Square crop (1:1), 1080x1080px.\n"
+        "- Emphasize appetizing look: vibrancy, contrast, texture.\n"
+        "- Minimize background distractions.\n"
+        "RESIZING RULE:\n"
+        "- Scale dish proportionally. Do not crop food. Pad/extend background to fit square.\n"
+        "OUTPUT: JPEG in sRGB. Return ONLY the edited image bytes."
+    ),
+
+    "Swiggy": (
+        "TASK: Edit this food photo for Swiggy.\n"
+        "MANDATORY CHANGES:\n"
+        "- 1:1 aspect, 1080x1080px.\n"
+        "- Enhance vibrancy, lighting, contrast.\n"
+        "- Remove clutter around dish.\n"
+        "RESIZING RULE:\n"
+        "- Keep dish fully visible. Scale only; extend/blur background for fit.\n"
+        "OUTPUT: JPEG in sRGB. Return ONLY the edited image bytes."
+    ),
+
+    "Instagram Post": (
+        "TASK: Adapt this image for Instagram feed.\n"
+        "MANDATORY CHANGES:\n"
+        "- Square (1080x1080px) or Portrait (4:5 at 1080x1350px).\n"
+        "- Apply creative grading, contrast, and clarity.\n"
+        "- Subject must remain recognizable.\n"
+        "RESIZING RULE:\n"
+        "- Reframe without cropping subject. Use padding or blurred background fill if needed.\n"
+        "OUTPUT: JPEG in sRGB. Return ONLY the edited image bytes."
+    ),
+
+    "Instagram Story": (
+        "TASK: Convert this image into Instagram Story format.\n"
+        "MANDATORY CHANGES:\n"
+        "- Vertical 9:16 at 1080x1920px.\n"
+        "- Keep subject centered in safe area (exclude top/bottom 20%).\n"
+        "- Add fill/blur background as required.\n"
+        "RESIZING RULE:\n"
+        "- Scale only, no cropping. Extend background to fit full vertical frame.\n"
+        "OUTPUT: JPEG or MP4 in sRGB. Return ONLY the edited media bytes."
+    ),
+
+    "OLX": (
+        "TASK: Prepare this image for OLX listing.\n"
+        "MANDATORY CHANGES:\n"
+        "- Neutral white/gray background, clutter removed.\n"
+        "- Honest product representation, clear lighting.\n"
+        "- Aspect: 1:1 (1200x1200px) or 4:3 (1200x900px).\n"
+        "- No personal info, watermarks, or text.\n"
+        "RESIZING RULE:\n"
+        "- Scale product proportionally. Extend background as required; do not crop.\n"
+        "OUTPUT: JPEG in sRGB. Return ONLY the edited image bytes."
+    ),
+
+    "Spotify Album Cover": (
+        "TASK: Create/edit an album cover image for Spotify.\n"
+        "MANDATORY CHANGES:\n"
+        "- Square format (1:1) at 3000x3000px (minimum 640x640px).\n"
+        "- Strong, artistic design aligned with music identity.\n"
+        "- No text overlays, logos, URLs, or social media handles.\n"
+        "RESIZING RULE:\n"
+        "- Resize by scaling only, do not crop subject. Extend/pad background if needed.\n"
+        "OUTPUT: JPEG or PNG in sRGB. Return ONLY the edited image bytes."
+    )
 }
 
 # Function to encode image
@@ -117,6 +254,19 @@ def encode_image(image):
     buffered = BytesIO()
     image.save(buffered, format="JPEG")
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+
+def safe_rerun():
+    """Try to rerun Streamlit reliably across versions.
+
+    Attempts to call st.experimental_rerun(); if not available, toggle
+    a session_state timestamp to force UI refresh.
+    """
+    try:
+        st.experimental_rerun()
+    except Exception:
+        ts_key = "_refresh_ts"
+        st.session_state[ts_key] = time.time()
 
 
 def validate_and_fix_b64(b64_str):
@@ -275,21 +425,27 @@ with st.sidebar:
     if api_key_input:
         st.session_state.api_key = api_key_input
 
-    st.header("Generation")
-    num_images = st.slider("How many images per platform?", 1, 4, 1)
-    st.write("Each generated image will attempt a different angle up to the selected number.")
-    st.markdown("**Platform-specific extras**")
-    spotify_extra = st.text_input("Spotify Canvas: any specific elements to include?", value="")
-    olx_extra = st.text_input("OLX: any specific details to show (condition, accessories)?", value="")
-
     st.markdown("---")
     st.header("Platform Specifications")
-    selected_platform_info = st.selectbox("View requirements for:", list(PLATFORMS.keys()))
-    st.write(f"**{selected_platform_info}**")
-    st.write(f"Description: {PLATFORMS[selected_platform_info]['description']}")
-    st.write(f"Requirements: {PLATFORMS[selected_platform_info]['requirements']}")
-    st.write(f"Aspect Ratio: {PLATFORMS[selected_platform_info]['aspect_ratio']}")
-    st.write(f"Recommended Size: {PLATFORMS[selected_platform_info]['size']}")
+
+# Dropdown to select platform
+    selected_platform = st.selectbox("View requirements for:", list(PLATFORMS.keys()))
+    platform_info = PLATFORMS[selected_platform]
+
+# Display platform details
+    st.write(f"### {selected_platform}")
+    st.write(f"**Description:** {platform_info['description']}")
+
+# Requirements (dict pretty print)
+    st.subheader("Requirements")
+    for key, value in platform_info["requirements"].items():
+        st.write(f"- **{key.capitalize()}**: {value}")
+
+# Notes (if available)
+    if "notes" in platform_info and platform_info["notes"]:
+        st.subheader("Additional Notes")
+        st.write(platform_info["notes"])
+
 
 # Main content
 col1, col2 = st.columns(2)
@@ -303,119 +459,127 @@ with col1:
             st.warning("Please upload at most 4 images. Only the first 4 will be used.")
             uploaded_files = uploaded_files[:4]
 
-        # Display thumbnails and let user choose whether to generate for all
+        # Display thumbnails for all uploaded files (we will process all uploads automatically)
         cols = st.columns(len(uploaded_files))
         for i, uf in enumerate(uploaded_files):
             try:
                 thumb = Image.open(uf)
-                cols[i].image(thumb, use_column_width=True)
+                cols[i].image(thumb, use_container_width=True)
                 cols[i].write(uf.name)
             except Exception:
                 cols[i].write(uf.name)
 
-        generate_for_all = st.checkbox("Generate for all uploaded images?", value=False)
-        selected_index = 0
-        if not generate_for_all:
-            names = [f.name for f in uploaded_files]
-            selected_name = st.selectbox("Select which uploaded image to use:", names)
-            selected_index = names.index(selected_name)
+        # Always process all uploaded images
+        images_to_process = uploaded_files
 
-        if generate_for_all:
-            images_to_process = uploaded_files
-        else:
-            images_to_process = [uploaded_files[selected_index]]
+    # (Thumbnails already displayed above) - no separate preview to avoid duplication
+        # number of images per platform (moved from sidebar)
+        num_images = st.slider("How many images per platform?", 1, 4, 1)
 
-        # For preview, pick first
-        image = Image.open(images_to_process[0])
-        st.image(image, caption="Original Image", use_column_width=True)
-        
         st.header("Select Platforms")
         selected_platforms = []
         for platform in PLATFORMS.keys():
             if st.checkbox(platform, key=platform):
                 selected_platforms.append(platform)
         
+        # Optional global extra instructions (displayed above the Generate button)
+        st.subheader("Extra Instructions (optional)")
+        ei = st.text_area(
+            "Enter any extra instructions to apply to all generations (optional)",
+            value=st.session_state.get('extra_instructions', ''),
+            height=120,
+            key="extra_instructions_input",
+        )
+        st.session_state.extra_instructions = ei
+
         if st.button("Generate Formatted Images", disabled=len(selected_platforms) == 0 or not st.session_state.api_key):
             if len(selected_platforms) == 0:
                 st.error("Please select at least one platform.")
             else:
                 with st.spinner("Generating formatted images..."):
-                    # Clear all previously generated images to start fresh for this generation.
-                    try:
-                        gen_dir = os.path.join(os.getcwd(), 'generated')
-                        if os.path.exists(gen_dir):
-                            for fname in os.listdir(gen_dir):
-                                fpath = os.path.join(gen_dir, fname)
-                                try:
-                                    if os.path.isfile(fpath):
-                                        os.remove(fpath)
-                                except Exception:
-                                    pass
-                        # Reset session state container so UI doesn't keep old entries
-                        st.session_state.generated_images = {}
-                    except Exception:
-                        # If cleanup fails, continue but warn
-                        st.warning("Failed to fully clear previous generated images, continuing anyway.")
-                    # Process each selected source image
-                    for src_idx, src_file in enumerate(images_to_process):
+                        # Clear all previously generated images to start fresh for this generation.
                         try:
-                            src_img = Image.open(src_file).convert('RGB')
+                            gen_dir = os.path.join(os.getcwd(), 'generated')
+                            if os.path.exists(gen_dir):
+                                for fname in os.listdir(gen_dir):
+                                    fpath = os.path.join(gen_dir, fname)
+                                    try:
+                                        if os.path.isfile(fpath):
+                                            os.remove(fpath)
+                                    except Exception:
+                                        pass
+                            # Reset session state container so UI doesn't keep old entries
+                            st.session_state.generated_images = {}
                         except Exception:
-                            st.error(f"Failed to open uploaded image: {getattr(src_file,'name',str(src_idx))}")
-                            continue
+                            # If cleanup fails, continue but warn
+                            st.warning("Failed to fully clear previous generated images, continuing anyway.")
+                        # Process each selected source image
+                        for src_idx, src_file in enumerate(images_to_process):
+                            try:
+                                src_img = Image.open(src_file).convert('RGB')
+                            except Exception:
+                                st.error(f"Failed to open uploaded image: {getattr(src_file,'name',str(src_idx))}")
+                                continue
 
-                        img_b64 = encode_image(src_img)
+                            img_b64 = encode_image(src_img)
 
-                        # Generate images for each platform
-                        for platform in selected_platforms:
-                            with st.status(f"Processing {platform}...", expanded=True) as status:
-                                try:
-                                    # Generate multiple angles up to num_images
-                                    platform_size = PLATFORMS[platform]['size']
-                                    w, h = parse_size(platform_size)
-                                    generated_list = []
-                                    for i in range(num_images):
-                                        angle = ANGLES[i]
-                                        # Append any platform extras
-                                        extra = ""
-                                        if platform == 'Spotify Canvas' and spotify_extra:
-                                            extra = f" Include: {spotify_extra}."
-                                        if platform == 'OLX' and olx_extra:
-                                            extra = f" Include: {olx_extra}."
+                            # Generate images for each platform
+                            for platform in selected_platforms:
+                                with st.status(f"Processing {platform}...", expanded=True) as status:
+                                    try:
+                                        # Generate multiple angles up to num_images
+                                        platform_size = PLATFORMS[platform]['size']
+                                        w, h = parse_size(platform_size)
+                                        generated_list = []
+                                        for i in range(num_images):
+                                            angle = ANGLES[i]
+                                            # Append any platform extras from session state
+                                            extra = ""
+                                            se = st.session_state.get('spotify_extra', '')
+                                            oe = st.session_state.get('olx_extra', '')
+                                            # Global optional extra instructions (user-provided)
+                                            gen_extra = st.session_state.get('extra_instructions', '')
+                                            if platform == 'Spotify Canvas' and se:
+                                                extra = f" Include: {se}."
+                                            if platform == 'OLX' and oe:
+                                                extra = f" Include: {oe}."
+                                            if gen_extra:
+                                                # Append general extra instructions for all platforms
+                                                extra = f" {extra} Additional instructions: {gen_extra}."
 
-                                        angle_prompt = f"{PROMPTS[platform]} Generate the image from a {angle}.{extra}"
-                                        result_b64 = call_gemini_api(img_b64, angle_prompt, platform)
+                                            angle_prompt = f"{PROMPTS[platform]} Generate the image from a {angle}.{extra}"
+                                            result_b64 = call_gemini_api(img_b64, angle_prompt, platform)
 
-                                        if not result_b64:
-                                            continue
+                                            if not result_b64:
+                                                continue
 
-                                        fixed_b64 = validate_and_fix_b64(result_b64)
-                                        if not fixed_b64:
-                                            continue
+                                            fixed_b64 = validate_and_fix_b64(result_b64)
+                                            if not fixed_b64:
+                                                continue
 
-                                        # Decode and save to a physical file
-                                        img_bytes = base64.b64decode(fixed_b64)
-                                        os.makedirs(os.path.join(os.getcwd(), 'generated'), exist_ok=True)
-                                        fname = f"formatforge_{platform.lower().replace(' ', '_')}_{i}_{int(time.time())}.jpg"
-                                        fpath = os.path.join(os.getcwd(), 'generated', fname)
-                                        with open(fpath, 'wb') as f:
-                                            f.write(img_bytes)
+                                            # Decode and save to a physical file
+                                            img_bytes = base64.b64decode(fixed_b64)
+                                            os.makedirs(os.path.join(os.getcwd(), 'generated'), exist_ok=True)
+                                            fname = f"formatforge_{platform.lower().replace(' ', '_')}_{i}_{int(time.time())}.jpg"
+                                            fpath = os.path.join(os.getcwd(), 'generated', fname)
+                                            with open(fpath, 'wb') as f:
+                                                f.write(img_bytes)
 
-                                        # Resize to platform size if parse succeeded
-                                        if w and h:
-                                            resize_image_file(fpath, w, h)
+                                            # Resize to platform size if parse succeeded
+                                            if w and h:
+                                                resize_image_file(fpath, w, h)
 
-                                        generated_list.append({"b64": fixed_b64, "path": fpath, "angle": angle, "modified": False})
+                                            generated_list.append({"b64": fixed_b64, "path": fpath, "angle": angle, "modified": False})
 
-                                    if generated_list:
-                                        st.session_state.generated_images[platform] = generated_list
-                                        status.update(label=f"{platform}: Complete", state="complete")
-                                        st.write(generate_audio_feedback(platform, True))
-                                    else:
+                                        if generated_list:
+                                            st.session_state.generated_images[platform] = generated_list
+                                            status.update(label=f"{platform}: Complete", state="complete")
+                                            st.write(generate_audio_feedback(platform, True))
+                                        else:
+                                            status.update(label=f"{platform}: Error", state="error")
+                                    except Exception as e:
                                         status.update(label=f"{platform}: Error", state="error")
-                                except Exception as e:
-                                    status.update(label=f"{platform}: Error", state="error")
-                                    st.error(f"Error generating image for {platform}: {str(e)}")
+                                        st.error(f"Error generating image for {platform}: {str(e)}")
 
 with col2:
     st.header("Generated Images")
@@ -444,7 +608,7 @@ with col2:
                             img = None
 
                     if img:
-                        st.image(img, use_column_width=True)
+                        st.image(img, use_container_width=True)
                         # Download button per item
                         buf = BytesIO()
                         try:
@@ -485,7 +649,7 @@ with col2:
                                 st.session_state[pending_key] = modify_text
                                 st.session_state[busy_key] = True
                                 try:
-                                    st.experimental_rerun()
+                                    safe_rerun()
                                 except Exception:
                                     try:
                                         st.query_params = {"_mod": str(int(time.time()))}
@@ -524,15 +688,15 @@ with col2:
                                         # Immediately reload and display the updated image so UI reflects the change
                                         try:
                                             refreshed = Image.open(fpath)
-                                            st.image(refreshed, use_column_width=True)
+                                            st.image(refreshed, use_container_width=True)
                                         except Exception:
                                             pass
                                         # Try to refresh once more so the UI shows the new image
                                         try:
-                                            st.experimental_rerun()
+                                            safe_rerun()
                                         except Exception:
                                             try:
-                                                    st.query_params = {"_refresh": str(int(time.time()))}
+                                                st.query_params = {"_refresh": str(int(time.time()))}
                                             except Exception:
                                                 st.session_state._last_modify_ts = int(time.time())
                                 except Exception as e:
@@ -565,7 +729,7 @@ with col2:
                         img = None
 
                 if img:
-                    st.image(img, use_column_width=True)
+                    st.image(img, use_container_width=True)
                     buf = BytesIO()
                     try:
                         img.save(buf, format='JPEG')
