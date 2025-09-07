@@ -528,7 +528,7 @@ with col1:
                                 with st.status(f"Processing {platform}...", expanded=True) as status:
                                     try:
                                         # Generate multiple angles up to num_images
-                                        platform_size = PLATFORMS[platform]['size']
+                                        platform_size = PLATFORMS[platform].get('size', PLATFORMS[platform].get('requirements', {}).get('size', ''))
                                         w, h = parse_size(platform_size)
                                         generated_list = []
                                         for i in range(num_images):
