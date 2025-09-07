@@ -126,7 +126,7 @@ The `PLATFORMS` dict in `work.py` defines precise requirements per platform, inc
 
 Anyone is welcome to collaborate on this project. Recommended workflow:
 
-1. Fork the repository (`https://github.com/iam-saiteja/SKU-Ready`).
+1. Fork the repository (`https://github.com/iam-saiteja/FormatForge`).
 2. Create a descriptive feature branch and make your changes.
 3. Open a Pull Request describing the change and any testing steps.
 4. Open an Issue first if you prefer to discuss the idea before coding.
