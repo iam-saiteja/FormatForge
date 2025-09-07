@@ -756,11 +756,10 @@ st.markdown("""
 ### How It Works
 1. **Upload** your original image
 2. **Select** the platforms you want to format for
-3. **Generate** optimized images using Gemini 1.5 Flash
-4. **Download** your perfectly formatted assets
+3. **Generate** optimized images using Gemini
+4. **Modify (optional)**: choose a generated image and use the "Modify / Chat about this image" box to request an edit — the app will send the image plus your text instruction to Gemini and replace the image in-place when done
+5. **Download** your final, formatted assets
 
-### Powered By
-- **Gemini 1.5 Flash** for intelligent image transformation
-- **Fal AI** for batch processing capabilities (simulation)
-- **ElevenLabs** for voice feedback and validation (simulation)
+### Notes
+- The app uses the Gemini image-edit model to perform transformations. It saves generated outputs into a local `generated/` folder.
 """)
