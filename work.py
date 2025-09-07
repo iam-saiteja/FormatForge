@@ -675,7 +675,7 @@ with col2:
                                         # Overwrite same file so item stays in-place
                                         with open(fpath, 'wb') as f:
                                             f.write(img_bytes)
-                                        pw, ph = parse_size(PLATFORMS[platform]['size'])
+                                        pw, ph = parse_size(PLATFORMS[platform].get('size', PLATFORMS[platform].get('requirements', {}).get('size', '')))
                                         if pw and ph:
                                             resize_image_file(fpath, pw, ph)
                                         # Update session state explicitly and mark as modified
